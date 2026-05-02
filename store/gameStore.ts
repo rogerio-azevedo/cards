@@ -130,22 +130,19 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   discardCard: (instanceId) => {
-    set((state) => {
-      if (state.phase !== 'Discard') return state;
-      const handKey = state.currentTurn === 'Player' ? 'playerHand' : 'opponentHand';
-      const hand = [...state[handKey]];
-      const cardIndex = hand.findIndex(c => c.instanceId === instanceId);
-      
-      if (cardIndex !== -1) {
-        hand.splice(cardIndex, 1);
-        set({ [handKey]: hand });
-        // Draw 1 card
-        get().drawCard(state.currentTurn, 1);
-        get().endTurn();
-      }
-      return state;
-    });
+    const state = get();
+    if (state.phase !== 'Discard') return;
+
+    const handKey = state.currentTurn === 'Player' ? 'playerHand' : 'opponentHand';
+    const hand = state[handKey].filter(c => c.instanceId !== instanceId);
+    
+    if (hand.length < state[handKey].length) {
+      set({ [handKey]: hand });
+      get().drawCard(state.currentTurn, 1);
+      get().endTurn();
+    }
   },
+
 
   selectCardFromHand: (instanceId) => {
     set({ selectedCardIdFromHand: instanceId, sacrificeSelection: [], attackerCardId: null });
@@ -434,19 +431,27 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   endTurn: () => {
-    set((state) => {
-      const nextTurn = state.currentTurn === 'Player' ? 'Opponent' : 'Player';
-      return {
-        currentTurn: nextTurn,
-        phase: 'StarCheck',
-        selectedCardIdFromHand: null,
-        sacrificeSelection: [],
-        hasPlacedCardThisTurn: false,
-        hasAttackedThisTurn: false,
-        hasPlayedAnomalyThisTurn: false,
-        attackerCardId: null,
-        cardsThatAttacked: []
-      };
+    const state = get();
+    const nextTurn = state.currentTurn === 'Player' ? 'Opponent' : 'Player';
+    
+    // Draw cards to replenish hand to 5 at the end of turn
+    const handKey = state.currentTurn === 'Player' ? 'playerHand' : 'opponentHand';
+    const currentHandSize = state[handKey].length;
+    if (currentHandSize < 5) {
+      get().drawCard(state.currentTurn, 5 - currentHandSize);
+    }
+
+    set({
+      currentTurn: nextTurn,
+      phase: 'StarCheck',
+      selectedCardIdFromHand: null,
+      sacrificeSelection: [],
+      hasPlacedCardThisTurn: false,
+      hasAttackedThisTurn: false,
+      hasPlayedAnomalyThisTurn: false,
+      attackerCardId: null,
+      cardsThatAttacked: []
     });
   }
+
 }));

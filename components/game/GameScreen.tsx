@@ -92,33 +92,34 @@ export const GameScreen: React.FC = () => {
       <div className="flex-1 relative flex flex-col justify-center">
         
         {/* Top Controls */}
-        <div className="absolute top-4 w-full px-8 flex justify-between items-start text-white z-50">
-          <div className="flex gap-4">
+        <div className="absolute top-2 sm:top-4 w-full px-2 sm:px-8 flex justify-between items-start text-white z-50">
+          <div className="flex gap-2 sm:gap-4">
             <button 
               onClick={() => router.push('/')}
-              className="bg-white/5 hover:bg-white/10 px-6 py-2 rounded-full font-bold backdrop-blur-md border border-white/10 transition-all flex items-center gap-2"
+              className="bg-white/5 hover:bg-white/10 px-3 sm:px-6 py-1.5 sm:py-2 rounded-full font-bold backdrop-blur-md border border-white/10 transition-all flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm"
             >
-              <span className="opacity-50">←</span> Mapa
+              <span className="opacity-50 text-xs sm:text-base">←</span> <span className="max-sm:hidden">Mapa</span>
             </button>
-            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-6 py-2 flex items-center gap-4">
-              <span className="text-white/40 text-[10px] font-black uppercase tracking-widest">Nível {level}</span>
-              <div className="w-px h-4 bg-white/10" />
+            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-full px-3 sm:px-6 py-1.5 sm:py-2 flex items-center gap-2 sm:gap-4">
+              <span className="text-white/40 text-[8px] sm:text-[10px] font-black uppercase tracking-widest">Nível {level}</span>
+              <div className="w-px h-3 sm:h-4 bg-white/10" />
               <button 
                 onClick={handleVictory}
-                className="text-emerald-400 hover:text-emerald-300 font-bold text-xs uppercase"
+                className="text-emerald-400 hover:text-emerald-300 font-bold text-[8px] sm:text-xs uppercase"
               >
-                Simular Vitória
+                Vitória
               </button>
             </div>
           </div>
           
           <div className="flex flex-col items-end gap-1">
-             <div className="bg-red-500/10 border border-red-500/50 rounded-full px-6 py-1 backdrop-blur-sm">
-                <span className="text-red-400 font-black text-[10px] uppercase tracking-widest">Oponente</span>
+             <div className="bg-red-500/10 border border-red-500/50 rounded-full px-3 sm:px-6 py-0.5 sm:py-1 backdrop-blur-sm">
+                <span className="text-red-400 font-black text-[8px] sm:text-[10px] uppercase tracking-widest">Oponente</span>
              </div>
              {/* Opponent Hand UI rendered separately below */}
           </div>
         </div>
+
 
         {/* The Field (Board) */}
         <GameBoard />

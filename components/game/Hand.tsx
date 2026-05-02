@@ -12,6 +12,15 @@ interface HandProps {
 }
 
 export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
+  const [isMobile, setIsMobile] = React.useState(false);
+  
+  React.useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const { 
     selectedCardIdFromHand, 
     selectCardFromHand, 
@@ -23,11 +32,12 @@ export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
     hasPlayedAnomalyThisTurn
   } = useGameStore();
 
+
   const isPlayerTurn = currentTurn === 'Player';
 
   if (isOpponent) {
     return (
-      <div className="flex justify-center -space-x-12 scale-75 opacity-80 pointer-events-none absolute top-[-80px] w-full">
+      <div className="flex justify-center -space-x-14 sm:-space-x-12 scale-[0.6] sm:scale-75 opacity-80 pointer-events-none absolute top-[-60px] sm:top-[-80px] w-full">
         {cards.map((card, idx) => (
           <PlayingCard key={`opp-hand-${card.instanceId}-${idx}`} card={cardCatalog[0]} isFaceDown={true} />
         ))}
@@ -35,9 +45,11 @@ export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
     );
   }
 
+
   return (
-    <div className="fixed bottom-0 left-0 w-full flex justify-center pb-8 z-50 pointer-events-none">
-      <div className="flex justify-center -space-x-6 pointer-events-auto max-w-[90vw]">
+    <div className="fixed bottom-0 left-0 w-full flex justify-center pb-4 sm:pb-8 z-50 pointer-events-none">
+      <div className="flex justify-center -space-x-10 sm:-space-x-6 pointer-events-auto max-w-[95vw] sm:max-w-[90vw]">
+
         <AnimatePresence>
           {cards.map((gameCard, index) => {
             const catalogCard = cardCatalog.find(c => c.id === gameCard.cardId);
@@ -45,8 +57,8 @@ export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
 
             const isSelected = selectedCardIdFromHand === gameCard.instanceId;
             const offset = index - (cards.length - 1) / 2;
-            const rotation = isSelected ? 0 : offset * 3;
-            const translateY = isSelected ? -100 : Math.abs(offset) * 8;
+            const rotation = isSelected ? 0 : offset * (isMobile ? 2 : 3);
+            const translateY = isSelected ? (isMobile ? -80 : -100) : Math.abs(offset) * (isMobile ? 4 : 8);
 
             const isAnomaly = catalogCard.type === 'Anomaly';
             
@@ -55,8 +67,9 @@ export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
             if (isPlayerTurn) {
               if (phase === 'Anomaly' && isAnomaly && !hasPlayedAnomalyThisTurn) isPlayable = true;
               if (phase === 'MainAction' && !isAnomaly && !hasPlacedCardThisTurn && !hasAttackedThisTurn) isPlayable = true;
-              if (phase === 'Discard' && !hasPlacedCardThisTurn) isPlayable = true;
+              if (phase === 'Discard') isPlayable = true;
             }
+
 
             return (
               <motion.div
@@ -66,17 +79,19 @@ export const Hand: React.FC<HandProps> = ({ cards, isOpponent = false }) => {
                   y: translateY, 
                   rotate: rotation,
                   opacity: 1,
-                  scale: isSelected ? 1.2 : 1,
+                  scale: isSelected ? (isMobile ? 1.4 : 1.2) : (isMobile ? 0.9 : 1),
                   zIndex: isSelected ? 100 : index
                 }}
                 exit={{ y: 300, opacity: 0, scale: 0.5 }}
                 whileHover={{ 
-                  y: isSelected ? -100 : -60, 
+                  y: isSelected ? (isMobile ? -80 : -100) : (isMobile ? -40 : -60), 
                   rotate: 0, 
-                  scale: 1.2,
+                  scale: isMobile ? 1.4 : 1.2,
                   zIndex: 200,
                   transition: { duration: 0.2, type: 'spring', stiffness: 300 }
                 }}
+
+
                 className={cn(
                   "relative origin-bottom cursor-pointer transition-all duration-300",
                   isSelected && "shadow-[0_0_50px_rgba(59,130,246,0.6)] rounded-xl",

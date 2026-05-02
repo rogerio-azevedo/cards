@@ -26,15 +26,17 @@ const EmptySlot = ({
       onClick={onClick}
       className={cn(
         "border-2 border-dashed border-white/20 rounded-xl flex items-center justify-center bg-black/20 transition-all",
-        isDefense ? "w-48 h-32" : "w-32 h-48",
+        isDefense ? "w-36 h-20 sm:w-48 sm:h-32" : "w-20 h-32 sm:w-32 sm:h-48",
+
         isOpponent && isDefense && "opacity-50",
         isHighlight && !isOpponent && "border-blue-500 bg-blue-500/20 cursor-pointer shadow-[0_0_15px_rgba(59,130,246,0.5)] hover:bg-blue-500/40"
       )}
     >
-      <span className="text-white/30 text-xs font-bold uppercase">{isDefense ? 'Defesa' : 'Ataque'}</span>
+      <span className="text-white/30 text-[10px] sm:text-xs font-bold uppercase">{isDefense ? 'Defesa' : 'Ataque'}</span>
     </div>
   );
 };
+
 
 export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
   const { 
@@ -77,8 +79,19 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
     
     // Agora garantimos que é uma CreatureCard
     const creatureCat = catalogSelected as import('../../types/game').CreatureCard;
-    return creatureCat.allowedSlots?.includes(slot) || false;
+    const isAllowedSlot = creatureCat.allowedSlots?.includes(slot) || false;
+    
+    if (!isAllowedSlot) return false;
+
+    // Se o slot estiver ocupado, só é jogável se a carta atual for um dos sacrifícios selecionados
+    const currentCardAtSlot = field.attack[slot] || field.defense[slot];
+    if (currentCardAtSlot && !sacrificeSelection.includes(currentCardAtSlot.instanceId)) {
+      return false;
+    }
+
+    return true;
   };
+
 
   const handleSlotClick = (slot: BoardPosition, mode: 'Attack' | 'Defense') => {
     if (!isSlotPlayable(slot) || !selectedCardIdFromHand) return;
@@ -123,17 +136,20 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
   };
 
   const renderDefenseRow = () => (
-    <div className="flex justify-center gap-4 w-full">
+    <div className="flex justify-center gap-1 sm:gap-4 w-full px-2 sm:px-0">
       {slots.map(slot => {
         const gameCard = field.defense[slot];
         const catalogCard = gameCard ? cardCatalog.find(c => c.id === gameCard.cardId) : null;
         
         const isSacrificeTarget = gameCard && sacrificeSelection.includes(gameCard.instanceId);
         const playable = isSlotPlayable(slot) && !gameCard;
+        const canPlayOnSacrifice = isSacrificeTarget && isSlotPlayable(slot);
         const isTargetable = isOpponent && attackerCardId && gameCard; // Can always attack defense
 
+        const requiredSacrifices = catalogSelected?.type === 'Star' ? 4 : 3;
+
         return (
-          <div key={`def-${slot}`} className="flex items-center justify-center w-48 h-36 relative">
+          <div key={`def-${slot}`} className="flex items-center justify-center w-36 h-20 sm:w-48 sm:h-36 relative">
             {catalogCard && gameCard ? (
               <div 
                 className={cn(
@@ -142,7 +158,13 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
                   isSacrificeTarget && "shadow-[0_0_20px_rgba(239,68,68,0.8)] rounded-xl scale-105 border-2 border-red-500",
                   isTargetable && "cursor-crosshair hover:scale-105 hover:shadow-[0_0_20px_rgba(234,179,8,0.8)] border-2 border-yellow-500 rounded-xl"
                 )}
-                onClick={() => handleCardClick(gameCard.instanceId, slot, 'Defense')}
+                onClick={() => {
+                  if (canPlayOnSacrifice && sacrificeSelection.length === requiredSacrifices) {
+                    handleSlotClick(slot, 'Defense');
+                  } else {
+                    handleCardClick(gameCard.instanceId, slot, 'Defense');
+                  }
+                }}
               >
                 <PlayingCard 
                   card={catalogCard} 
@@ -153,8 +175,14 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
                 {isSacrificeTarget && (
                   <div className="absolute inset-0 bg-red-500/30 rounded-xl pointer-events-none" />
                 )}
+                {canPlayOnSacrifice && sacrificeSelection.length === requiredSacrifices && (
+                  <div className="absolute inset-0 bg-blue-500/50 rounded-xl border border-blue-400 flex items-center justify-center animate-pulse z-20 -rotate-90">
+                    <span className="bg-black text-white text-[8px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded font-bold">Colocar Aqui</span>
+                  </div>
+                )}
               </div>
             ) : (
+
               <EmptySlot 
                 isDefense 
                 isOpponent={isOpponent} 
@@ -168,8 +196,9 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
     </div>
   );
 
+
   const renderAttackRow = () => (
-    <div className="flex justify-center gap-4 w-full">
+    <div className="flex justify-center gap-1 sm:gap-4 w-full px-2 sm:px-0">
       {slots.map(slot => {
         const gameCard = field.attack[slot];
         const catalogCard = gameCard ? cardCatalog.find(c => c.id === gameCard.cardId) : null;
@@ -188,7 +217,8 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
         const requiredSacrifices = catalogSelected?.type === 'Star' ? 4 : 3;
 
         return (
-          <div key={`atk-${slot}`} className="flex items-center justify-center w-36 h-52 relative">
+          <div key={`atk-${slot}`} className="flex items-center justify-center w-20 h-32 sm:w-36 sm:h-52 relative">
+
             {catalogCard && gameCard ? (
               <div 
                 className={cn(
@@ -219,7 +249,7 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
                 )}
                 {canPlayOnSacrifice && sacrificeSelection.length === requiredSacrifices && (
                   <div className="absolute inset-0 bg-blue-500/50 rounded-xl border border-blue-400 flex items-center justify-center animate-pulse">
-                    <span className="bg-black text-white text-xs px-2 py-1 rounded font-bold">Colocar Aqui</span>
+                    <span className="bg-black text-white text-[8px] sm:text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded font-bold">Colocar Aqui</span>
                   </div>
                 )}
               </div>
@@ -235,6 +265,7 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
       })}
     </div>
   );
+
 
   return (
     <div className={cn("flex flex-col gap-4 w-full", isOpponent && "flex-col-reverse")}>
