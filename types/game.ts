@@ -15,6 +15,7 @@ export interface CreatureCard extends BaseCard {
   type: 'Star' | 'Planet' | 'Moon' | 'DwarfPlanet';
   attack: number;
   defense: number;
+  defenseBonus?: number; // Bonus when in Defense mode
   allowedSlots: BoardPosition[]; // 2 slots for Moon/DwarfPlanet. 5 slots for Planets/Stars.
   isGasOrWater?: boolean; // If true, immune to normal physical attacks
 }

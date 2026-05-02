@@ -47,7 +47,9 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
     attackerCardId,
     selectAttacker,
     executeAttack,
-    cardsThatAttacked
+    cardsThatAttacked,
+    hasPlacedCardThisTurn,
+    hasAttackedThisTurn
   } = useGameStore();
 
   const slots: BoardPosition[] = [1, 2, 3, 4, 5];
@@ -65,11 +67,12 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
     // Anomalias não são jogadas em slots normais
     if (catalogSelected.type === 'Anomaly') return false;
 
-    const { phase } = useGameStore.getState();
-    if (phase !== 'Main') return false;
+    if (phase !== 'MainAction') return false;
+    if (hasPlacedCardThisTurn || hasAttackedThisTurn) return false;
 
     if (catalogSelected.type === 'Planet' || catalogSelected.type === 'Star') {
-      if (sacrificeSelection.length < 3) return false;
+      const requiredSacrifices = catalogSelected.type === 'Star' ? 4 : 3;
+      if (sacrificeSelection.length < requiredSacrifices) return false;
     }
     
     // Agora garantimos que é uma CreatureCard
@@ -83,11 +86,18 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
   };
 
   const handleCardClick = (instanceId: string, slot: BoardPosition, mode: 'Attack' | 'Defense') => {
+    // Handling Star Power (Helios)
+    if (phase === 'StarCheck' && isOpponent) {
+       // Check if player has Helios on field (simplified for now)
+       useGameStore.getState().useStarPower(instanceId);
+       return;
+    }
+
     // Handling Attacks
-    if (phase === 'Main' && !selectedCardIdFromHand) {
+    if (phase === 'MainAction' && !selectedCardIdFromHand) {
       if (!isOpponent && mode === 'Attack') {
-        // Select as attacker if it hasn't attacked yet
-        if (!cardsThatAttacked.includes(instanceId)) {
+        // Select as attacker if it hasn't attacked yet and no other action taken
+        if (!cardsThatAttacked.includes(instanceId) && !hasPlacedCardThisTurn && !hasAttackedThisTurn) {
           selectAttacker(attackerCardId === instanceId ? null : instanceId);
         }
         return;
@@ -97,8 +107,6 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
         // Check if target is valid (cannot attack Attack card if there is a Defense card protecting it)
         const hasDefenseProtector = field.defense[slot] !== null;
         if (mode === 'Attack' && hasDefenseProtector) {
-          // Protected! Cannot attack.
-          // Could play a shake animation or toast here.
           return;
         }
         executeAttack(instanceId);
@@ -136,7 +144,12 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
                 )}
                 onClick={() => handleCardClick(gameCard.instanceId, slot, 'Defense')}
               >
-                <PlayingCard card={catalogCard} isFaceDown={isOpponent} />
+                <PlayingCard 
+                  card={catalogCard} 
+                  isFaceDown={isOpponent} 
+                  currentDefense={gameCard.currentDefense}
+                  isDefenseMode={true}
+                />
                 {isSacrificeTarget && (
                   <div className="absolute inset-0 bg-red-500/30 rounded-xl pointer-events-none" />
                 )}
@@ -172,6 +185,8 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
         const isProtected = field.defense[slot] !== null;
         const isTargetable = isOpponent && attackerCardId && gameCard && !isProtected;
 
+        const requiredSacrifices = catalogSelected?.type === 'Star' ? 4 : 3;
+
         return (
           <div key={`atk-${slot}`} className="flex items-center justify-center w-36 h-52 relative">
             {catalogCard && gameCard ? (
@@ -180,24 +195,29 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
                   "transition-all",
                   catalogSelected && !isOpponent && "cursor-pointer hover:scale-105",
                   isSacrificeTarget && "shadow-[0_0_20px_rgba(239,68,68,0.8)] rounded-xl scale-105 border-2 border-red-500",
-                  !isOpponent && phase === 'Main' && !hasAttacked && !selectedCardIdFromHand && "cursor-pointer hover:scale-105 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]",
+                  !isOpponent && phase === 'MainAction' && !hasAttacked && !selectedCardIdFromHand && "cursor-pointer hover:scale-105 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]",
                   isAttacker && "shadow-[0_0_30px_rgba(234,179,8,1)] scale-110 z-10 rounded-xl",
                   hasAttacked && "opacity-50 grayscale pointer-events-none",
                   isTargetable && "cursor-crosshair hover:scale-105 hover:shadow-[0_0_20px_rgba(234,179,8,0.8)] border-2 border-yellow-500 rounded-xl"
                 )}
                 onClick={() => {
-                  if (canPlayOnSacrifice && sacrificeSelection.length === 3) {
+                  if (canPlayOnSacrifice && sacrificeSelection.length === requiredSacrifices) {
                     handleSlotClick(slot, 'Attack');
                   } else {
                     handleCardClick(gameCard.instanceId, slot, 'Attack');
                   }
                 }}
               >
-                <PlayingCard card={catalogCard} isFaceDown={isOpponent} />
+                <PlayingCard 
+                  card={catalogCard} 
+                  isFaceDown={isOpponent} 
+                  currentDefense={gameCard.currentDefense}
+                  isDefenseMode={false}
+                />
                 {isSacrificeTarget && (
                   <div className="absolute inset-0 bg-red-500/30 rounded-xl pointer-events-none" />
                 )}
-                {canPlayOnSacrifice && sacrificeSelection.length === 3 && (
+                {canPlayOnSacrifice && sacrificeSelection.length === requiredSacrifices && (
                   <div className="absolute inset-0 bg-blue-500/50 rounded-xl border border-blue-400 flex items-center justify-center animate-pulse">
                     <span className="bg-black text-white text-xs px-2 py-1 rounded font-bold">Colocar Aqui</span>
                   </div>

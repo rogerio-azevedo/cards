@@ -9,6 +9,8 @@ interface PlayingCardProps {
   onClick?: () => void;
   className?: string;
   isFaceDown?: boolean;
+  currentDefense?: number;
+  isDefenseMode?: boolean;
 }
 
 const rarityColors = {
@@ -26,7 +28,14 @@ const typeIcons = {
   Anomaly: Zap,
 };
 
-export const PlayingCard: React.FC<PlayingCardProps> = ({ card, onClick, className, isFaceDown = false }) => {
+export const PlayingCard: React.FC<PlayingCardProps> = ({ 
+  card, 
+  onClick, 
+  className, 
+  isFaceDown = false,
+  currentDefense,
+  isDefenseMode = false
+}) => {
   if (isFaceDown) {
     return (
       <motion.div
@@ -47,6 +56,10 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({ card, onClick, classNa
   const isCreature = card.type !== 'Anomaly';
   const creatureCard = isCreature ? (card as CreatureCard) : null;
   const TypeIcon = typeIcons[card.type];
+  
+  // Use currentDefense if provided, otherwise fallback to base defense
+  const displayDefense = currentDefense !== undefined ? currentDefense : (creatureCard?.defense || 0);
+  const bonus = (isDefenseMode && creatureCard?.defenseBonus) ? creatureCard.defenseBonus : 0;
 
   return (
     <motion.div
@@ -54,7 +67,8 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({ card, onClick, classNa
       className={cn(
         "w-36 h-52 rounded-xl border-4 flex flex-col p-2 relative shadow-lg select-none",
         rarityColors[card.rarity],
-        className
+        className,
+        isDefenseMode && "ring-4 ring-blue-400 ring-offset-2"
       )}
       onClick={onClick}
     >
@@ -87,17 +101,16 @@ export const PlayingCard: React.FC<PlayingCardProps> = ({ card, onClick, classNa
             <Swords className="w-3 h-3" />
             {creatureCard.attack}
           </div>
-          <div className="flex items-center gap-1 font-bold text-xs bg-blue-500/20 px-1 rounded">
-            <Shield className="w-3 h-3" />
-            {creatureCard.defense}
+          <div className="flex flex-col items-end">
+             {bonus > 0 && (
+               <span className="text-[8px] text-blue-600 font-bold">+{bonus} Bonus</span>
+             )}
+            <div className="flex items-center gap-1 font-bold text-xs bg-blue-500/20 px-1 rounded">
+              <Shield className="w-3 h-3" />
+              {displayDefense}
+              {currentDefense !== undefined && <span className="text-[8px] opacity-50 ml-0.5">/{creatureCard.defense}</span>}
+            </div>
           </div>
-        </div>
-      )}
-
-      {/* Slots Allowed */}
-      {isCreature && creatureCard && (
-        <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 flex gap-0.5">
-          {/* We will show small numbers as a badge */}
         </div>
       )}
 

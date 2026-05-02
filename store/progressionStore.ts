@@ -6,9 +6,13 @@ interface ProgressionState {
   currentLevel: number;
   unlockedLevels: number[];
   inventory: string[]; // Card IDs
+  playerXp: number;
+  assignedDeck: string[]; // List of card IDs in the player's current deck
   
   unlockLevel: (level: number) => void;
   addCardToInventory: (cardId: string) => void;
+  updateXp: (amount: number) => void;
+  setAssignedDeck: (cardIds: string[]) => void;
   resetProgress: () => void;
 }
 
@@ -17,7 +21,9 @@ export const useProgressionStore = create<ProgressionState>()(
     (set) => ({
       currentLevel: 1,
       unlockedLevels: [1],
-      inventory: [], // IDs of cards the player owns beyond the starter deck
+      inventory: [], 
+      playerXp: 0,
+      assignedDeck: [],
 
       unlockLevel: (level) => set((state) => ({
         unlockedLevels: state.unlockedLevels.includes(level) 
@@ -29,7 +35,19 @@ export const useProgressionStore = create<ProgressionState>()(
         inventory: [...state.inventory, cardId]
       })),
 
-      resetProgress: () => set({ currentLevel: 1, unlockedLevels: [1], inventory: [] })
+      updateXp: (amount) => set((state) => ({
+        playerXp: state.playerXp + amount
+      })),
+
+      setAssignedDeck: (cardIds) => set({ assignedDeck: cardIds }),
+
+      resetProgress: () => set({ 
+        currentLevel: 1, 
+        unlockedLevels: [1], 
+        inventory: [],
+        playerXp: 0,
+        assignedDeck: []
+      })
     }),
     {
       name: 'solar-balls-progress', // localStorage key
