@@ -73,7 +73,7 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
     if (hasPlacedCardThisTurn || hasAttackedThisTurn) return false;
 
     if (catalogSelected.type === 'Planet' || catalogSelected.type === 'Star') {
-      const requiredSacrifices = catalogSelected.type === 'Star' ? 4 : 3;
+      const requiredSacrifices = 3; // Stars and Planets both need 3 sacrifices
       if (sacrificeSelection.length < requiredSacrifices) return false;
     }
     
@@ -146,7 +146,7 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
         const canPlayOnSacrifice = isSacrificeTarget && isSlotPlayable(slot);
         const isTargetable = isOpponent && attackerCardId && gameCard; // Can always attack defense
 
-        const requiredSacrifices = catalogSelected?.type === 'Star' ? 4 : 3;
+        const requiredSacrifices = 3;
 
         return (
           <div key={`def-${slot}`} className="flex items-center justify-center w-36 h-20 sm:w-48 sm:h-36 relative">
@@ -214,7 +214,7 @@ export const Field: React.FC<FieldProps> = ({ field, isOpponent = false }) => {
         const isProtected = field.defense[slot] !== null;
         const isTargetable = isOpponent && attackerCardId && gameCard && !isProtected;
 
-        const requiredSacrifices = catalogSelected?.type === 'Star' ? 4 : 3;
+        const requiredSacrifices = 3;
 
         return (
           <div key={`atk-${slot}`} className="flex items-center justify-center w-20 h-32 sm:w-36 sm:h-52 relative">

@@ -45,6 +45,7 @@ interface GameState {
   selectAttacker: (instanceId: string | null) => void;
   executeAttack: (targetInstanceId: string) => void;
   useStarPower: (targetInstanceId: string) => void;
+  triggerAnomalyEffect: (effectId: string, player: PlayerTurn) => void;
   nextPhase: () => void;
   endTurn: () => void;
 }
@@ -211,13 +212,19 @@ export const useGameStore = create<GameState>((set, get) => ({
       
       hand.splice(cardIndex, 1);
       
+      // Trigger Anomaly Effect
+      if (catalogCard.type === 'Anomaly') {
+        const anomaly = catalogCard as import('../types/game').AnomalyCard;
+        get().triggerAnomalyEffect(anomaly.effectId, player);
+      }
+
       // Check Win Condition
       let winner = state.winner;
       if (catalogCard.type === 'Star') {
         winner = player;
       }
       
-      return { 
+      const newState = { 
         [handKey]: hand, 
         [fieldKey]: newField,
         winner,
@@ -226,6 +233,15 @@ export const useGameStore = create<GameState>((set, get) => ({
         hasPlacedCardThisTurn: catalogCard.type !== 'Anomaly' ? true : state.hasPlacedCardThisTurn,
         hasPlayedAnomalyThisTurn: catalogCard.type === 'Anomaly' ? true : state.hasPlayedAnomalyThisTurn
       };
+
+      set(newState);
+
+      // Auto-advance phase if MainAction
+      if (state.phase === 'MainAction' && catalogCard.type !== 'Anomaly') {
+        get().nextPhase();
+      }
+
+      return newState;
     });
   },
 
@@ -348,13 +364,21 @@ export const useGameStore = create<GameState>((set, get) => ({
         }
       }
 
-      return {
+      const finalState = {
         attackerCardId: null,
         hasAttackedThisTurn: true,
         cardsThatAttacked: [...state.cardsThatAttacked, attackerInstanceId],
         playerField,
         opponentField,
       };
+
+      set(finalState);
+      
+      if (state.phase === 'MainAction') {
+        get().nextPhase();
+      }
+
+      return finalState;
     });
   },
 
@@ -418,6 +442,42 @@ export const useGameStore = create<GameState>((set, get) => ({
         playerField,
         opponentField,
       };
+    });
+  },
+
+  triggerAnomalyEffect: (effectId, player) => {
+    set((state) => {
+      const isPlayer = player === 'Player';
+      const opponentFieldKey = isPlayer ? 'opponentField' : 'playerField';
+      const opponentField = { ...state[opponentFieldKey] };
+      
+      opponentField.attack = { ...opponentField.attack };
+      opponentField.defense = { ...opponentField.defense };
+
+      if (effectId === 'DESTROY_2_RANDOM') { // Pulsar
+        const allOpponentCards: {instanceId: string, slot: number, mode: 'Attack' | 'Defense'}[] = [];
+        
+        Object.entries(opponentField.attack).forEach(([slot, card]) => {
+          if (card) allOpponentCards.push({ instanceId: card.instanceId, slot: Number(slot), mode: 'Attack' });
+        });
+        Object.entries(opponentField.defense).forEach(([slot, card]) => {
+          if (card) allOpponentCards.push({ instanceId: card.instanceId, slot: Number(slot), mode: 'Defense' });
+        });
+
+        // Shuffle and pick 2
+        for (let i = allOpponentCards.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [allOpponentCards[i], allOpponentCards[j]] = [allOpponentCards[j], allOpponentCards[i]];
+        }
+
+        const toDestroy = allOpponentCards.slice(0, 2);
+        toDestroy.forEach(target => {
+          if (target.mode === 'Attack') opponentField.attack[target.slot] = null;
+          else opponentField.defense[target.slot] = null;
+        });
+      }
+
+      return { [opponentFieldKey]: opponentField };
     });
   },
 

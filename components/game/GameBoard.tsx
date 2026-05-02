@@ -16,7 +16,10 @@ export const GameBoard: React.FC = () => {
     winner,
     startGame,
     playerDeck,
-    opponentDeck
+    opponentDeck,
+    selectedCardIdFromHand,
+    playerHand,
+    playCardToField
   } = useGameStore();
 
   const phaseNames = {
@@ -132,14 +135,63 @@ export const GameBoard: React.FC = () => {
 
       {/* Anomaly Zones */}
       <div className="fixed sm:absolute left-1 sm:left-8 top-1/2 -translate-y-1/2 flex flex-col gap-12 sm:gap-32 z-10 scale-[0.6] sm:scale-100 origin-left">
+        {/* Opponent Anomaly Zone */}
         <div className="group relative">
-          <div className="w-24 h-36 sm:w-32 sm:h-48 border-2 border-dashed border-red-500/50 rounded-xl bg-red-950/20 flex flex-col items-center justify-center transition-all group-hover:border-red-500">
-            <span className="text-red-500/50 text-[10px] sm:text-xs font-bold text-center px-2 group-hover:text-red-500 uppercase">Anomalia</span>
+          <div className="w-24 h-36 sm:w-32 sm:h-48 border-2 border-dashed border-red-500/30 rounded-xl bg-red-950/10 flex flex-col items-center justify-center transition-all">
+            {opponentField.anomalies.length > 0 ? (
+              <div className="relative">
+                {opponentField.anomalies.map((ano, i) => (
+                  <div key={ano.instanceId} className="absolute inset-0" style={{ transform: `translateY(${i * 2}px) scale(${1 - i * 0.05})`, zIndex: 10 - i }}>
+                    <div className="w-24 h-36 sm:w-32 sm:h-48 bg-slate-800 rounded-xl border border-red-500/50 shadow-xl" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <span className="text-red-500/30 text-[10px] sm:text-xs font-bold text-center px-2 uppercase">Anomalia</span>
+            )}
           </div>
         </div>
-        <div className="group relative">
-          <div className="w-24 h-36 sm:w-32 sm:h-48 border-2 border-dashed border-blue-500/50 rounded-xl bg-blue-950/20 flex flex-col items-center justify-center transition-all group-hover:border-blue-500">
-            <span className="text-blue-500/50 text-[10px] sm:text-xs font-bold text-center px-2 group-hover:text-blue-500 uppercase">Anomalia</span>
+
+        {/* Player Anomaly Zone */}
+        <div 
+          className={cn(
+            "group relative transition-all",
+            phase === 'Anomaly' && selectedCardIdFromHand && playerHand.find(c => c.instanceId === selectedCardIdFromHand)?.cardId.includes('anomaly') && "scale-110"
+          )}
+          onClick={() => {
+            if (phase === 'Anomaly' && selectedCardIdFromHand) {
+              const card = playerHand.find(c => c.instanceId === selectedCardIdFromHand);
+              if (card && card.cardId.includes('anomaly')) {
+                playCardToField('Player', card.instanceId, 1, 'Attack'); // Slot and mode don't matter for Anomaly
+              }
+            }
+          }}
+        >
+          <div className={cn(
+            "w-24 h-36 sm:w-32 sm:h-48 border-2 border-dashed rounded-xl bg-blue-950/10 flex flex-col items-center justify-center transition-all",
+            phase === 'Anomaly' && selectedCardIdFromHand && playerHand.find(c => c.instanceId === selectedCardIdFromHand)?.cardId.includes('anomaly')
+              ? "border-blue-400 bg-blue-500/20 shadow-[0_0_30px_rgba(59,130,246,0.5)] cursor-pointer"
+              : "border-blue-500/30"
+          )}>
+            {playerField.anomalies.length > 0 ? (
+               <div className="flex flex-col items-center">
+                 {playerField.anomalies.slice(-1).map(ano => {
+                   const cat = useGameStore.getState().playerDeck.find(c => c.id === ano.cardId) || 
+                               require('../../data/cards').cardCatalog.find((c: any) => c.id === ano.cardId);
+                   return (
+                     <div key={ano.instanceId} className="w-24 h-36 sm:w-32 sm:h-48 bg-slate-800 rounded-xl border border-blue-500/50 shadow-xl flex items-center justify-center overflow-hidden">
+                       <span className="text-[8px] text-blue-300 font-bold uppercase text-center px-2">{cat?.name}</span>
+                     </div>
+                   );
+                 })}
+               </div>
+            ) : (
+              <span className="text-blue-500/30 text-[10px] sm:text-xs font-bold text-center px-2 uppercase group-hover:text-blue-500">
+                {phase === 'Anomaly' && selectedCardIdFromHand && playerHand.find(c => c.instanceId === selectedCardIdFromHand)?.cardId.includes('anomaly')
+                  ? "Ativar Aqui"
+                  : "Anomalia"}
+              </span>
+            )}
           </div>
         </div>
       </div>
